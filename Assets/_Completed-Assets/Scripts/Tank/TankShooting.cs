@@ -18,9 +18,10 @@ namespace Complete
 
 
         private string m_FireButton;                // The input axis that is used for launching shells.
-        private float m_CurrentLaunchForce;         // The force that will be given to the shell when the fire button is released.
-        private float m_ChargeSpeed;                // How fast the launch force increases, based on the max charge time.
-        private bool m_Fired;                       // Whether or not the shell has been launched with this button press.
+        public float m_CurrentLaunchForce;         // The force that will be given to the shell when the fire button is released.
+        public float m_ChargeSpeed;                // How fast the launch force increases, based on the max charge time.
+        public bool m_Fired;                       // Whether or not the shell has been launched with this button press.
+        public float m_LastLaunchForce = 0;         // last force used in fire
 
 
         private void OnEnable()
@@ -34,7 +35,7 @@ namespace Complete
         private void Start ()
         {
             // The fire axis is based on the player number.
-            m_FireButton = "Fire" + m_PlayerNumber;
+            m_FireButton = "Fire1";
 
             // The rate that the launch force charges up is the range of possible forces by the max charge time.
             m_ChargeSpeed = (m_MaxLaunchForce - m_MinLaunchForce) / m_MaxChargeTime;
@@ -81,7 +82,7 @@ namespace Complete
         }
 
 
-        private void Fire ()
+        public void Fire ()
         {
             // Set the fired flag so only Fire is only called once.
             m_Fired = true;
@@ -97,6 +98,7 @@ namespace Complete
             m_ShootingAudio.clip = m_FireClip;
             m_ShootingAudio.Play ();
 
+            m_LastLaunchForce = m_CurrentLaunchForce;
             // Reset the launch force.  This is a precaution in case of missing button events.
             m_CurrentLaunchForce = m_MinLaunchForce;
         }
