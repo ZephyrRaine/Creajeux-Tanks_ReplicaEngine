@@ -36,6 +36,24 @@ public class ReplicaEditor : Editor
                     replica.m_ComponentsToDisable.Add(comp.GetType());
             }
             EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.Foldout(replicate, "");
+            if(replicate)
+            {
+                EditorGUILayout.BeginVertical();
+                foreach (PropertyInfo prop in comp.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    string lol = prop.DeclaringType.ToString();
+
+                    Type myType = prop.PropertyType;
+                    if((!myType.IsClass || myType.ToString() == ("System.String")) && prop.CanWrite && prop.CanRead && myType.Name != "enabled" && myType.ToString() != "UnityEngine.HideFlags") 
+                    {
+                        EditorGUILayout.Toggle(prop.Name + " (" + myType.ToString() + ")", false);
+                    }
+                }
+                EditorGUILayout.EndVertical();    
+            }
+            EditorGUILayout.EndHorizontal();
             EditorUtility.SetDirty(replica.gameObject);
         }
     }
