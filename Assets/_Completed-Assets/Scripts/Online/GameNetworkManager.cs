@@ -326,8 +326,13 @@ public class GameNetworkManager : NetworkManager
             _writer.Write(rep.Key);
             foreach (var comp in rep.Value.m_components)
             {
-                _writer.Write((int)comp.Key);
-                switch (comp.Key)
+                _writer.Write(comp.Key.ToString());
+                foreach(var variable in rep.Value.m_ComponentsToReplicate[comp.Key])
+                {
+                    _writer.Write(variable);
+                }
+
+                /*switch (comp.Key)
                 {
                     case ReplicaComponent.Type.Transform:
                         Serialize(_writer, comp.Value as Transform);
@@ -344,7 +349,7 @@ public class GameNetworkManager : NetworkManager
                     default:
                         Debug.Assert(false, "Serialization not implemented for " + rep.GetType());
                         break;
-                }
+                }*/
             }
             _writer.Write((int)ReplicaComponent.Type.END);
             if (rep.Value.m_replicaCondition != null)

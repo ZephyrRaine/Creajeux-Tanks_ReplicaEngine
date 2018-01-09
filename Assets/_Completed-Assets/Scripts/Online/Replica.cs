@@ -19,13 +19,13 @@ public class ReplicaEditor : Editor
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(comp.GetType().ToString());
-            bool replicate = replica.m_ComponentsToReplicate.Contains(comp.GetType());
+            bool replicate = replica.m_ComponentsToReplicate.ContainsKey(comp.GetType());
             if(replicate != EditorGUILayout.Toggle(replicate))
             {
                 if(replicate)
                     replica.m_ComponentsToReplicate.Remove(comp.GetType());
                 else
-                    replica.m_ComponentsToReplicate.Add(comp.GetType());
+                    replica.m_ComponentsToReplicate[comp.GetType()] = new List<String>();
             }
             bool disable = replica.m_ComponentsToDisable.Contains(comp.GetType());
             if (disable != EditorGUILayout.Toggle(disable))
@@ -48,7 +48,14 @@ public class ReplicaEditor : Editor
                     Type myType = prop.PropertyType;
                     if((!myType.IsClass || myType.ToString() == ("System.String")) && prop.CanWrite && prop.CanRead && myType.Name != "enabled" && myType.ToString() != "UnityEngine.HideFlags") 
                     {
-                        EditorGUILayout.Toggle(prop.Name + " (" + myType.ToString() + ")", false);
+                        bool replicateVar = replica.m_ComponentsToReplicate[comp.GetType()].Contains(prop.Name);
+                        if(replicateVar != EditorGUILayout.Toggle(prop.Name + " (" + myType.ToString() + ")", replicateVar))
+                        {
+                            if(replicateVar)
+                                replica.m_ComponentsToReplicate[comp.GetType()].Remove(prop.Name);
+                            else
+                                replica.m_ComponentsToReplicate[comp.GetType()].Add(prop.Name);
+                        }
                     }
                 }
                 EditorGUILayout.EndVertical();    
@@ -106,21 +113,22 @@ public class Replica : MonoBehaviour , ISerializationCallbackReceiver{
     public bool OnlyOnHost = false;
     public bool OnlyForLocalPlayer = true;
     public ReplicaConditionFlag m_condition = ReplicaConditionFlag.Always;
-    public List<System.Type> m_ComponentsToReplicate = new List<System.Type>();
+    public Dictionary<System.Type, List<String>> m_ComponentsToReplicate = new Dictionary<System.Type, List<String>>();
+
     public List<System.Type> m_ComponentsToDisable = new List<System.Type>();
     //</editable>
 
     public ReplicaCondition m_replicaCondition;
     public int m_PlayerID = 0;
-    public Dictionary<ReplicaComponent.Type, Component> m_components = new Dictionary<ReplicaComponent.Type, Component>();
+    public Dictionary<System.Type, Component> m_components = new Dictionary<System.Type, Component>();
 
 	void Start () {
         m_UID = KeyGen++;
         foreach (var type in m_ComponentsToReplicate)
         {
-            var comp = GetComponent(type);
+            var comp = GetComponent(type.Key);
             Debug.Assert(comp);
-            m_components.Add(ReplicaComponent.ComponentToReplicaComponentType(comp), comp);
+            m_components.Add(type.Key, comp);
         }
         m_replicaCondition = ReplicaCondition.CreateCondition(m_condition, this);
         GameNetworkManager.Singleton.RegisterReplica(this);
@@ -183,8 +191,10 @@ public class Replica : MonoBehaviour , ISerializationCallbackReceiver{
         ser_ComponentsToReplicate.Clear();
         foreach(var comp in m_ComponentsToReplicate)
         {
-            ser_ComponentsToReplicate.Add(comp.ToString());
+            ser_ComponentsToReplicate.Add(comp.Key.ToString());
+            ser_ComponentsToReplicate.AddRange(comp.Value);
         }
+
         ser_ComponentsToDisable.Clear();
         foreach (var comp in m_ComponentsToDisable)
         {
@@ -195,18 +205,22 @@ public class Replica : MonoBehaviour , ISerializationCallbackReceiver{
     public void OnAfterDeserialize()
     {
         m_ComponentsToReplicate.Clear();
+        Type type;
         foreach(var str in ser_ComponentsToReplicate)
         {
-            Type type = GetType(str);
+            type = GetType(str);
             if(type != null)
-                m_ComponentsToReplicate.Add(type);
+                m_ComponentsToReplicate[type] = new List<string>();
+            else
+                m_ComponentsToReplicate[type].Add(str);
+
         }
        m_ComponentsToDisable.Clear();
         foreach(var str in ser_ComponentsToDisable)
         {
-            Type type = GetType(str);
-            if(type != null)
-                m_ComponentsToDisable.Add(type);
+            Type typeDis = GetType(str);
+            if(typeDis != null)
+                m_ComponentsToDisable.Add(typeDis);
         }
     }
     //</serialization>
